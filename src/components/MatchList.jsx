@@ -67,21 +67,19 @@ export default function MatchList() {
       {/* Caixa de resumo / estatísticas */}
       <div className="summary-stats-box">
         <div>
-          <span className="experience-period">Partidas: </span>
+          <span style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Partidas: </span>
           <span className="project-description">{total}</span>
         </div>
         <div>
-          <span className="experience-firm">Vitórias: </span>
+          <span style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Vitórias: </span>
           <span className="project-description">{vitorias}</span>
         </div>
         <div>
-          <span className="project-status derrota" style={{ fontStyle: 'normal' }}>
-            Derrotas:{' '}
-          </span>
+          <span style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Derrotas: </span>
           <span className="project-description">{derrotas}</span>
         </div>
         <div>
-          <span className="experience-period">Win Rate: </span>
+          <span style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Win Rate: </span>
           <span className="project-description">{taxaVitoria}%</span>
         </div>
       </div>

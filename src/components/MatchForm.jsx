@@ -200,8 +200,29 @@ export default function MatchForm() {
       placarApos: `${novoMeuPlacar} x ${novoAdvPlacar}`
     };
 
+    // Se estiver em torneio com deck e a rodada não foi empate:
+    // verificar se ainda estamos nas 3 primeiras rodadas sem empate e avançar para o próximo Bey livre
+    let proximoMeuCombo = partidaAtiva.meuCombo;
+    if (campeonatoAtivo?.beys && campeonatoAtivo.beys.length > 1) {
+      const novasValidas =
+        vencedorRodada !== 'empate'
+          ? [...partidaAtiva.rodadas.filter((r) => r.vencedor !== 'empate'), novaRodada]
+          : partidaAtiva.rodadas.filter((r) => r.vencedor !== 'empate');
+
+      if (novasValidas.length < 3) {
+        const bloqueadosApos = novasValidas.map((r) => r.meuCombo);
+        const primeiroLivre = campeonatoAtivo.beys.find(
+          (b) => !bloqueadosApos.includes(b)
+        );
+        if (primeiroLivre) {
+          proximoMeuCombo = primeiroLivre;
+        }
+      }
+    }
+
     setPartidaAtiva({
       ...partidaAtiva,
+      meuCombo: proximoMeuCombo,
       comboAdv: comboAdvAtual,
       placarMeu: novoMeuPlacar,
       placarAdv: novoAdvPlacar,
@@ -221,13 +242,15 @@ export default function MatchForm() {
     if (removida.vencedor === 'meu') recuoMeu -= removida.pontos;
     if (removida.vencedor === 'adv') recuoAdv -= removida.pontos;
 
-    // Restaura o combo do adversário da rodada anterior (se houver)
-    const comboAnterior =
+    const comboAnteriorAdv =
       ultimas.length > 0 ? ultimas[ultimas.length - 1].comboAdv : 'Adversário';
+    const comboAnteriorMeu =
+      removida.meuCombo || partidaAtiva.meuCombo;
 
     setPartidaAtiva({
       ...partidaAtiva,
-      comboAdv: comboAnterior,
+      meuCombo: comboAnteriorMeu,
+      comboAdv: comboAnteriorAdv,
       placarMeu: Math.max(0, recuoMeu),
       placarAdv: Math.max(0, recuoAdv),
       rodadas: ultimas
@@ -334,6 +357,17 @@ export default function MatchForm() {
     partidaAtiva &&
     (partidaAtiva.placarMeu >= partidaAtiva.metaPontos ||
       partidaAtiva.placarAdv >= partidaAtiva.metaPontos);
+
+  // Cálculo de Beys bloqueadas nas 3 primeiras rodadas sem empate no torneio
+  const rodadasValidasSemEmpate =
+    partidaAtiva && campeonatoAtivo
+      ? partidaAtiva.rodadas.filter((r) => r.vencedor !== 'empate')
+      : [];
+
+  const nasTresPrimeiras = rodadasValidasSemEmpate.length < 3;
+  const beysBloqueadas = nasTresPrimeiras
+    ? rodadasValidasSemEmpate.map((r) => r.meuCombo)
+    : [];
 
   return (
     <div style={{ width: '100%' }}>
@@ -840,21 +874,45 @@ export default function MatchForm() {
                 Rodada #{partidaAtiva.rodadas.length + 1} (Lançamento)
               </h3>
 
-              {/* Seleção rápida do Bey para este lançamento se houver deck de torneio */}
+              {/* Seleção rápida do Bey para este lançamento com bloqueio nas 3 primeiras rodadas */}
               {campeonatoAtivo?.beys && campeonatoAtivo.beys.length > 1 && (
                 <div className="form-group-custom">
-                  <label className="project-status">Meu Bey neste Lançamento</label>
+                  <label className="project-status">
+                    Meu Bey neste Lançamento
+                    {nasTresPrimeiras && beysBloqueadas.length > 0
+                      ? ` (${beysBloqueadas.length}/3 usados)`
+                      : ''}
+                  </label>
                   <div className="quick-btn-container">
-                    {campeonatoAtivo.beys.map((bey, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className={`quick-btn ${partidaAtiva.meuCombo === bey ? 'active-green' : ''}`}
-                        onClick={() => setPartidaAtiva({ ...partidaAtiva, meuCombo: bey })}
-                      >
-                        #{idx + 1} {bey}
-                      </button>
-                    ))}
+                    {campeonatoAtivo.beys.map((bey, idx) => {
+                      const bloqueado = beysBloqueadas.includes(bey);
+                      const ativo = partidaAtiva.meuCombo === bey;
+
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={bloqueado}
+                          className={`quick-btn ${ativo ? 'active-green' : ''}`}
+                          style={
+                            bloqueado
+                              ? {
+                                  opacity: 0.35,
+                                  cursor: 'not-allowed',
+                                  textDecoration: 'line-through'
+                                }
+                              : {}
+                          }
+                          onClick={() => {
+                            if (!bloqueado) {
+                              setPartidaAtiva({ ...partidaAtiva, meuCombo: bey });
+                            }
+                          }}
+                        >
+                          #{idx + 1} {bey}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
